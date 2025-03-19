@@ -56,6 +56,7 @@ def kg_graph(request):
     try:
         # 获取朝代参数
         dynasty_type = request.GET.get('dynasty', '').lower()
+        logger.info(f"Received request for dynasty: {dynasty_type}")
         
         # 唐朝知识图谱处理
         if dynasty_type == 'tang':
@@ -64,25 +65,32 @@ def kg_graph(request):
             MATCH (n:TangDynasty)-[r]->(m)
             RETURN n{.id, .name, .title, .birth, .death, .description} as n,
                    r{.type, .detail} as r,
-                   m{.id, .name, .title} as m
+                   m{.id, .name, .title, .birth, .death, .description} as m
             LIMIT 200
             """
             result = graph.run(query)
+            logger.info(f"Tang graph query result: {list(result)}")
+            # 调试输出
+            print(f"Tang graph query result: {list(result)}")
             return JsonResponse(process_neo4j_data(result))
         
         # 默认知识图谱处理
-        with driver.session() as session:
-            result = session.run("""
+        with driver.get_session() as session:
+            query = """
             MATCH (p:Person)-[r]->(p2)
             RETURN p{.id, .name, .title, .birth, .death, .description} as p,
                    r{.type, .detail} as r,
-                   p2{.id, .name} as p2
+                   p2{.id, .name, .title, .birth, .death, .description} as p2
             LIMIT 200
-            """)
+            """
+            result = session.run(query)
+            logger.info(f"Default graph query result: {list(result)}")
+            # 调试输出
+            print(f"Default graph query result: {list(result)}")
             return JsonResponse(process_neo4j_data(result))
 
     except Exception as e:
-        logger.error(f"Error in kg_graph: {e}")
+        logger.error(f"Error in kg_graph: {e}", exc_info=True)
         return JsonResponse({'error': str(e)}, status=500)
 
 @api_view(['GET'])
@@ -104,7 +112,7 @@ def kg_search(request):
             return JsonResponse({'ids': ids})
         
         # 默认搜索
-        with driver.session() as session:
+        with driver.get_session() as session:
             result = session.run(
                 "MATCH (p:Person) WHERE toLower(p.name) CONTAINS toLower($name) "
                 "RETURN p.id as id",
@@ -114,5 +122,5 @@ def kg_search(request):
             return JsonResponse({'ids': ids})
 
     except Exception as e:
-        logger.error(f"Error in kg_search: {e}")
+        logger.error(f"Error in kg_search: {e}", exc_info=True)
         return JsonResponse({'error': str(e)}, status=500)
