@@ -26,6 +26,7 @@
 
 <script>
 import { Network } from 'vis-network/standalone/esm/vis-network'
+import axios from 'axios'
 
 export default {
   data() {
@@ -75,7 +76,6 @@ export default {
         options
       )
 
-      // 添加节点点击事件
       this.network.on('click', (params) => {
         if (params.nodes.length) {
           const nodeId = params.nodes[0]
@@ -86,18 +86,24 @@ export default {
 
     async loadTangData() {
       try {
-        const url = 'http://127.0.0.1:8000/api/kg/graph?dynasty=tang'; // 确认 URL 正确
-        console.log('Request URL:', url);
-        const response = await this.axios.get(url, { timeout: 5000 }); // 5 秒超时时间
-        console.log('API response:', response); // 打印响应数据
-        this.processGraphData(response.data);
+        const url = 'http://127.0.0.1:8000/api/kg/graph?dynasty=tang'; 
+        console.log('Request URL:', url)
+        const response = await axios.get(url, { timeout: 5000 }) 
+        console.log('API response:', response) 
+        this.processGraphData(response.data)
       } catch (error) {
-        console.error('数据加载失败:', error);
+        console.error('数据加载失败:', error)
       }
     },
 
     processGraphData(apiData) {
-      // 转换节点格式
+      console.log('API Data:', apiData) 
+
+      if (!apiData || !apiData.nodes || !apiData.edges) {
+        console.error('API Data format is incorrect', apiData)
+        return
+      }
+
       const nodes = apiData.nodes.map(node => ({
         id: node.id,
         label: node.name,
@@ -105,22 +111,23 @@ export default {
         birth: node.birth,
         death: node.death,
         description: node.description,
-        group: node.type || 'default' // 按类型分组
+        group: node.type || 'default'
       }))
+      console.log('Processed Nodes:', nodes)
 
-      // 转换边格式
-      const edges = apiData.links.map(link => ({
-        from: link.source,
-        to: link.target,
-        label: link.type,
-        ...(link.detail && { title: link.detail }) // 悬浮显示详情
+      const edges = apiData.edges.map(edge => ({
+        from: edge.from,
+        to: edge.to,
+        label: edge.label,
+        ...(edge.title && { title: edge.title })
       }))
+      console.log('Processed Edges:', edges)
 
-      // 更新视图
       this.graphData = {
         nodes,
         edges
       }
+      console.log('Graph Data:', this.graphData)
       this.network.setData(this.graphData)
     },
 
@@ -128,17 +135,16 @@ export default {
       if (!this.searchKeyword) return
       
       try {
-        const response = await this.axios.get('/kg/search', {
+        const response = await axios.get('http://127.0.0.1:8000/api/kg/search', {
           params: {
             q: this.searchKeyword,
             dynasty: 'tang'
           }
         })
         
-        console.log('Search response:', response) // 打印搜索响应数据
+        console.log('Search response:', response) 
 
         if (response.data.ids.length > 0) {
-          // 高亮搜索到的节点
           this.network.selectNodes(response.data.ids)
           this.network.focus(response.data.ids[0], {
             scale: 0.8,
