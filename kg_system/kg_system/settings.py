@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
 from corsheaders.defaults import default_headers
+from django.conf import locale
+from django.utils.translation import gettext_lazy as _
 
 # 设置语言代码为中文
 LANGUAGE_CODE = 'zh-hans'
@@ -31,6 +33,7 @@ ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 # Application definition
 
 INSTALLED_APPS = [
+    'simpleui',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -86,15 +89,7 @@ WSGI_APPLICATION = 'kg_system.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-# 增加Neo4j配置
-NEO4J_CONFIG = {
-    'URI': os.getenv('NEO4J_URI', 'bolt://localhost:7687'),
-    'USER': os.getenv('NEO4J_USER', 'neo4j'),
-    'PASSWORD': os.getenv('NEO4J_PASSWORD', 'wzk030424'),
-    'DATABASE': 'neo4j',
-    'DRIVER_IMPORTED': True  # 标记已存在的driver连接方式
-}
-
+# MySQL 配置
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -103,15 +98,13 @@ DATABASES = {
         'PASSWORD': os.getenv('MYSQL_PASSWORD', '123456'),
         'HOST': os.getenv('MYSQL_HOST', 'localhost'),
         'PORT': os.getenv('MYSQL_PORT', '3306'),
-    },
-    'neo4j': {
-        'ENGINE': 'django.db.backends.dummy',
-        'NAME': NEO4J_CONFIG['DATABASE'],
-        'HOST': NEO4J_CONFIG['URI'],
-        'USER': NEO4J_CONFIG['USER'],
-        'PASSWORD': NEO4J_CONFIG['PASSWORD']
     }
 }
+
+# Neo4j 配置
+NEO4J_URI = os.getenv('NEO4J_URI', 'bolt://localhost:7687')
+NEO4J_USER = os.getenv('NEO4J_USER', 'neo4j')
+NEO4J_PASSWORD = os.getenv('NEO4J_PASSWORD', 'wzk030424')
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -155,3 +148,49 @@ STATICFILES_DIRS = [
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+LANGUAGES = [
+    ('zh-hans', _('Simplified Chinese')),
+    ('en', _('English')),
+    # 其他语言...
+]
+
+# 指定simpleui默认的主题,指定一个文件名，相对路径就从simpleui的theme目录读取
+SIMPLEUI_DEFAULT_THEME = 'admin.lte.css'
+
+SIMPLEUI_CONFIG = {
+    'menus': [
+        {
+            'name': '知识管理',
+            'icon': 'fas fa-book',
+            'models': [
+                {
+                    'name': '人物管理',
+                    'icon': 'fas fa-user',
+                    'url': '/admin/authentication/node/'  # 使用完整的 URL 路径
+                },
+                {
+                    'name': '关系管理',
+                    'icon': 'fas fa-link',
+                    'url': '/admin/authentication/relation/'  # 使用完整的 URL 路径
+                }
+            ]
+        },
+        {
+            'name': '用户管理',
+            'icon': 'fas fa-users',
+            'models': [
+                {
+                    'name': '用户',
+                    'icon': 'fas fa-user',
+                    'url': '/admin/auth/user/'  # 使用完整的 URL 路径
+                },
+                {
+                    'name': '组',
+                    'icon': 'fas fa-users',
+                    'url': '/admin/auth/group/'  # 使用完整的 URL 路径
+                }
+            ]
+        }
+    ]
+}
