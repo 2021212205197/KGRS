@@ -1,10 +1,11 @@
+from django.contrib import admin
 from django.urls import path
-from . import views
+from .views import register, login, kg_graph, kg_search
 
 urlpatterns = [
-    path('', views.index, name='index'),
-    path('register/', views.register, name='register'),
-    path('login/', views.login, name='login'),
-    path('kg/graph/', views.kg_graph, name='kg_graph'),
-    path('kg/search/', views.kg_search, name='kg_search')
+    path('register/', register, name='register'),
+    path('login/', login, name='login'),
+    path('kg/graph/', kg_graph, name='kg_graph'),
+    path('kg/search/', kg_search, name='kg_search'),
+    # path('admin/', admin.site.urls),
 ]

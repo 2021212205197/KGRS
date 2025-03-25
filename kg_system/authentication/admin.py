@@ -1,7 +1,16 @@
 from django.contrib import admin
-from .models import Product
+from django.contrib.auth.models import User
+from django.contrib.auth.admin import UserAdmin
+from .models import Node, Relation
 
-@admin.register(Product)
-class ProductAdmin(admin.ModelAdmin):
-    list_display = ('name', 'price', 'created_at')
-    search_fields = ('name',)
+# 注册自定义的 Node 和 Relation 模型
+@admin.register(Node)
+class NodeAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name', 'title', 'birth', 'death', 'description', 'type')
+    search_fields = ('name', 'title', 'type')
+
+@admin.register(Relation)
+class RelationAdmin(admin.ModelAdmin):
+    list_display = ('source', 'target', 'type', 'detail')
+    search_fields = ('type', 'detail')
+    list_filter = ('type',)

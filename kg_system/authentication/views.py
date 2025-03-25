@@ -7,7 +7,7 @@ from django.shortcuts import render
 from .serializers import UserSerializer
 from django.http import JsonResponse
 import json
-from .neo4j_utils import driver, process_neo4j_data, get_tang_graph
+from .neo4j_utils import driver, process_neo4j_data, get_tang_graph_data
 import logging
 
 logger = logging.getLogger(__name__)
@@ -60,7 +60,6 @@ def kg_graph(request):
         
         # 唐朝知识图谱处理
         if dynasty_type == 'tang':
-            graph = get_tang_graph()
             query = """
             MATCH (n:TangDynasty)-[r]->(m)
             RETURN n{.id, .name, .title, .birth, .death, .description} as n,
@@ -68,14 +67,12 @@ def kg_graph(request):
                    m{.id, .name, .title, .birth, .death, .description} as m
             LIMIT 200
             """
-            result = graph.run(query)
-            logger.info(f"Tang graph query result: {list(result)}")
-            # 调试输出
-            print(f"Tang graph query result: {list(result)}")
-            return JsonResponse(process_neo4j_data(result))
+            results = get_tang_graph_data(query)
+            logger.info(f"Tang graph query result: {results}")
+            return JsonResponse(process_neo4j_data(results))
         
         # 默认知识图谱处理
-        with driver.get_session() as session:
+        with driver.get_session() as graph:
             query = """
             MATCH (p:Person)-[r]->(p2)
             RETURN p{.id, .name, .title, .birth, .death, .description} as p,
@@ -83,11 +80,9 @@ def kg_graph(request):
                    p2{.id, .name, .title, .birth, .death, .description} as p2
             LIMIT 200
             """
-            result = session.run(query)
-            logger.info(f"Default graph query result: {list(result)}")
-            # 调试输出
-            print(f"Default graph query result: {list(result)}")
-            return JsonResponse(process_neo4j_data(result))
+            results = graph.run(query).data()
+            logger.info(f"Default graph query result: {results}")
+            return JsonResponse(process_neo4j_data(results))
 
     except Exception as e:
         logger.error(f"Error in kg_graph: {e}", exc_info=True)
@@ -102,23 +97,22 @@ def kg_search(request):
         
         # 唐朝专用搜索
         if dynasty_type == 'tang':
-            graph = get_tang_graph()
-            result = graph.run(
-                "MATCH (n:TangDynasty) WHERE toLower(n.name) CONTAINS toLower($name) "
-                "RETURN n.id as id",
-                {'name': query}
-            )
-            ids = [record['id'] for record in result]
+            search_query = """
+            MATCH (n:TangDynasty) WHERE toLower(n.name) CONTAINS toLower($name)
+            RETURN n.id as id
+            """
+            results = get_tang_graph_data(search_query, {'name': query})
+            ids = [record['id'] for record in results]
             return JsonResponse({'ids': ids})
         
         # 默认搜索
-        with driver.get_session() as session:
-            result = session.run(
-                "MATCH (p:Person) WHERE toLower(p.name) CONTAINS toLower($name) "
-                "RETURN p.id as id",
-                {'name': query}
-            )
-            ids = [record['id'] for record in result]
+        with driver.get_session() as graph:
+            search_query = """
+            MATCH (p:Person) WHERE toLower(p.name) CONTAINS toLower($name)
+            RETURN p.id as id
+            """
+            results = graph.run(search_query, {'name': query}).data()
+            ids = [record['id'] for record in results]
             return JsonResponse({'ids': ids})
 
     except Exception as e:

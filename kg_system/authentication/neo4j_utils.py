@@ -9,8 +9,8 @@ logger = logging.getLogger(__name__)
 class Neo4jDriver:
     def __init__(self):
         self._driver = GraphDatabase.driver(
-            "bolt://localhost:7687",
-            auth=("neo4j", "wzk030424")
+            settings.NEO4J_URI,
+            auth=(settings.NEO4J_USER, settings.NEO4J_PASSWORD)
         )
 
     def get_session(self):
@@ -55,11 +55,6 @@ def process_neo4j_data(result, primary_label="TangDynasty"):
         'edges': edges
     }
 
-def get_tang_graph():
-    return Graph(
-        settings.NEO4J_CONFIG['URI'],
-        auth=(
-            settings.NEO4J_CONFIG['USER'],
-            settings.NEO4J_CONFIG['PASSWORD']
-        )
-    )
+def get_tang_graph_data(query, parameters=None):
+    results = driver.get_session().run(query, parameters).data()
+    return results
